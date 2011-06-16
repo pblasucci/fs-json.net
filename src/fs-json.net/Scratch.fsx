@@ -105,10 +105,10 @@ let test' v = runTest toJSON' ofJSON' v
 let simplePair = ("Paul",32)
 test simplePair
 
-let paul = { Name = ("paulmichael","blasucci")
-             DoB  = dt "1979-06/04"
+let john = { Name = ("john","smith")
+             DoB  = dt "1977-05-05"
              Pets = ResizeArray() }
-test paul
+test john
 
 let apollo      = Dog("Apollo")
 let brooke      = Cat("Brooke",lives.Seven)
@@ -125,17 +125,17 @@ let menagerie   = ResizeArray([ brandypaul
 test  menagerie
 test' menagerie
 
-let brandy = { Name = ("brandy","bernat")
-               DoB  = dt "1988-09-01"
-               Pets = ResizeArray([hannah;kiki;huck;]) }
-test  brandy
-test' brandy
+let jane = { Name = ("jane","smith")
+             DoB  = dt "1978-09-01"
+             Pets = ResizeArray([hannah;kiki;huck;]) }
+test  jane
+test' jane
 
-let series1 = ResizeArray([ (paul,brandy)
-                            (paul,brandy)
-                            (brandy,paul)
-                            (brandy,paul) ])
-let pair1,pair2 = (paul,brandy),(brandy,paul)
+let series1 = ResizeArray([ (john,jane)
+                            (john,jane)
+                            (jane,john)
+                            (jane,john) ])
+let pair1,pair2 = (john,jane),(jane,john)
 let series2 = ResizeArray([ pair1;pair1;pair2;pair2; ])
 test' series1
 test' series2
