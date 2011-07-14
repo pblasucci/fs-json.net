@@ -32,13 +32,15 @@ type TupleConverter() =
         
         let fields = value |> FSharpValue.GetTupleFields
         if fields.Length > 0 then
-        
+          // emit "system" metadata, if necessary
           if serializer.IsTracking then
             writer.WriteIndentity(serializer,value)
           
           fields |> Array.iteri (fun i v ->  
+            // emit name based on values position in tuple
             let n = sprintf "Item%i" (i + 1)
             writer.WritePropertyName(n)
+            // emit value or reference thereto, if necessary 
             if v <> null && serializer.HasReference(v)
               then writer.WriteReference(serializer,v)
               else serializer.Serialize(writer,v))
