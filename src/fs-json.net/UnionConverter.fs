@@ -93,14 +93,17 @@ type UnionConverter<'u>() =
     | null -> nullArg "value" // 'null' unions don't really make any sense!
     | data -> 
         writer.WriteStartObject()
-
+        // emit "system" metadata, if necessary
         if serializer.IsTracking then 
           writer.WriteIndentity(serializer,value)
         
         props.[value |> getTag]
+          // match name (from definition) with value (from instance)
           |> Array.map  (fun p -> p.Name,p.GetValue(value,null))
           |> Array.iter (fun (n,v) -> 
+              // emit field name (from definition)
               writer.WritePropertyName(n)
+              // emit value, or reference thereto, if necessary
               if v <> null && serializer.HasReference(v) 
                 then writer.WriteReference(serializer,v)
                 else serializer.Serialize(writer,v))
