@@ -2,3 +2,6 @@
 [oO]bj/
 *.suo
 *.docstates
+*.user
+_ReSharper*/*
+
