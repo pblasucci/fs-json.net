@@ -14,70 +14,92 @@ namespace Newtonsoft.Json.FSharp
 
 open Microsoft.FSharp.Reflection
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 open System
+open System.Reflection
 
+//TODO: code comments
 //MAYBE: add caching
-type TupleConverter() =
+type OptionConverter() =
   inherit JsonConverter()
+  
+  let [<Literal>] FS_VALUE = "Value"
+  
+  let option    = typedefof<option<_>>
+  let noneCase
+     ,someCase  = let cases = FSharpType.GetUnionCases(option)
+                  (cases.[0],cases.[1])
+  let readTag   = FSharpValue.PreComputeUnionTagReader(option)
+
+  let (|IsNone|IsSome|) o =
+    if (readTag o) = someCase.Tag 
+      then  let _,values = FSharpValue.GetUnionFields(o,o.GetType())
+            IsSome (values.[0])
+      else  IsNone
+  
+  let makeClosedCases t =
+    let closedType = option.MakeGenericType([| t |])
+    let cases = FSharpType.GetUnionCases(closedType)
+    (cases.[0],cases.[1])
 
   override __.CanRead  = true
   override __.CanWrite = true
   
-  override __.CanConvert(vType) = vType |> FSharpType.IsTuple
-  
-  override __.WriteJson(writer,value,serializer) = 
+  override __.CanConvert(vType) = 
+    let vType = if vType.IsGenericType 
+                  then  vType.GetGenericTypeDefinition()
+                  else  vType
+    (vType = option)
+
+  override __.WriteJson(writer,value,serializer) =
     match value with
-    | null -> nullArg "value" // a 'null' tuple doesn't make sense!
-    | data -> 
-        writer.WriteStartObject()
-        
-        let fields = value |> FSharpValue.GetTupleFields
-        if fields.Length > 0 then
-          // emit "system" metadata, if necessary
-          if serializer.IsTracking then
-            writer.WriteIndentity(serializer,value)
-          
-          fields |> Array.iteri (fun i v ->  
-            // emit name based on values position in tuple
-            let n = sprintf "Item%i" (i + 1)
-            writer.WritePropertyName(n)
-            // emit value or reference thereto, if necessary 
-            if v <> null && serializer.HasReference(v)
-              then writer.WriteReference(serializer,v)
-              else serializer.Serialize(writer,v))
-        
-        writer.WriteEndObject()
-
-  override __.ReadJson(reader,vType,_,serializer) = 
+    | IsNone    ->  writer.WriteNull() 
+    | IsSome(v) ->  writer.WriteStartObject()
+              
+                    // emit "system" metadata, if necessary
+                    if serializer.IsTracking then 
+                      writer.WriteIndentity(serializer,value)
+              
+                    writer.WritePropertyName(FS_VALUE)
+                    // emit value, or reference thereto, if necessary
+                    if serializer.HasReference(v) 
+                      then  writer.WriteReference(serializer,v)
+                      else  serializer.Serialize(writer,v)
+              
+                    writer.WriteEndObject()
     
+  override __.ReadJson(reader,vType,_,serializer) = 
     let decode,decode',advance,readName = makeHelpers reader serializer
+        
+    let innerType         = vType.GetGenericArguments() |> Seq.head
+    let noneCase,someCase = makeClosedCases innerType
 
-    let readProperties (fields:Type[]) =
-      let rec readProps index pairs =
+    let readProperties () =
+      let rec readProps pairs =
         match reader.TokenType with
         | JsonToken.EndObject     -> pairs // no more pairs, return map
         | JsonToken.PropertyName  ->
             // get the key of the next key/value pair
-            let name = readName ()
-            let value,index' =  match name with
-                                //  for "system" metadata, process normally
-                                | JSON_ID | JSON_REF -> decode (),index
-                                //  for tuple data...
-                                //    use type info for current field
-                                //    bump offset to the next type info
-                                | _ -> decode' fields.[index],index+1
+            let name  = readName ()
+            let value = match name with
+                        //  for "system" metadata, process normally
+                        | JSON_ID 
+                        | JSON_REF -> decode()
+                        //  "Value" indicates option-type pair
+                        | FS_VALUE -> decode' innerType
+                        | _ -> reader |> invalidToken
             advance ()
             // add decoded key/value pair to map and continue to next pair
-            readProps (index') (pairs |> Map.add name value)
+            readProps (pairs |> Map.add name value)
         | _ -> reader |> invalidToken
       advance ()
-      readProps 0 Map.empty
+      readProps Map.empty
 
     match reader.TokenType with
+    | JsonToken.Null        -> FSharpValue.MakeUnion(noneCase,null)
     | JsonToken.StartObject ->
-        let fields = vType |> FSharpType.GetTupleElements
         // read all key/value pairs, reifying with tuple field types
-        match readProperties fields with
+        match readProperties() with
         | Ref(trackingId) -> 
             // tuple value is a reference, de-reference to actual value
             serializer.GetReference(string trackingId)
@@ -88,13 +110,11 @@ type TupleConverter() =
                 |> Seq.filter (fun (KeyValue(k,_)) -> k <> JSON_ID)
                 // discard keys, retain values
                 |> Seq.map (fun (KeyValue(_,v)) -> v)
-                // merge values with type info
-                |> Seq.zip fields
                 // marshal values to correct data types
-                |> Seq.map (fun (t,v) -> v |> coerceType t)
+                |> Seq.map (coerceType innerType)
                 |> Seq.toArray
-            // create tuple instance
-            let value = FSharpValue.MakeTuple(inputs,vType)
+            // create option instance
+            let value = FSharpValue.MakeUnion(someCase,inputs)
             if serializer.IsTracking then 
               match data |> Map.tryFindKey (fun k _ -> k = JSON_ID) with
               // use existing "$id"

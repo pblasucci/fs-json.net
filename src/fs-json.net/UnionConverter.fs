@@ -172,7 +172,7 @@ type UnionConverter<'u>() =
             // marshal to correct data types, based on union-case tag
             let tag = data.[FS_TAG] |> Convert.ToInt32
             let inputs = data |> prepValues tag serializer.Deserialize
-            // create union-case instance (and cache it if necessary)
+            // create union-case instance
             let value = inputs |> ctors.[tag] 
             if serializer.IsTracking then 
               match data |> Map.tryFindKey (fun k _ -> k = JSON_ID) with

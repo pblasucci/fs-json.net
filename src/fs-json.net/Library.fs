@@ -18,6 +18,7 @@ open System
 exception UnexpectedToken of JsonToken
 exception InvalidPropertySet
 
+//TODO: review this module for unused members
 [<AutoOpen>]
 module internal Library =
 
@@ -50,7 +51,7 @@ module internal Library =
     member self.WriteProperty(name,value:'a) =
       // "<name>" : <value>
       self.WritePropertyName(name)
-      self.WriteValue(value)
+      self.WriteValue(box value)
 
     member self.WriteIndentity(serializer:JsonSerializer,value) =
       // { "$id" : <an-identity> }

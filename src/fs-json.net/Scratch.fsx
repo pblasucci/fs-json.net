@@ -10,9 +10,10 @@ by the terms of the Apache License, Version 2.0.
                                                                            
 You must not remove this notice, or any other, from this software.         
 -------------------------------------------------------------------------*)
+open Microsoft.FSharp.Reflection
 open System
 
-#I @"..\..\packages\Newtonsoft.Json.4.0.2\lib\net40"
+#I @"..\..\packages\Newtonsoft.Json.5.0.5\lib\net40"
 #r "Newtonsoft.Json.dll"
 open Newtonsoft.Json
 
@@ -23,6 +24,9 @@ open Newtonsoft.Json.FSharp
 open Newtonsoft.Json.FSharp
 
 #load "UnionConverter.fs"
+open Newtonsoft.Json.FSharp
+
+#load "OptionConverter.fs"
 open Newtonsoft.Json.FSharp
 
 type Animal =
@@ -66,10 +70,11 @@ type Person =
 
 let dt = System.DateTime.Parse
 
-let converters : JsonConverter[] = 
-  [|  TupleConverter()
-      UnionConverter<Animal>()
-      UnionConverter<sex>()  |]
+let converters : JsonConverter[] = [| TupleConverter()
+                                      OptionConverter()
+                                   //   UnionConverter<Animal>()
+                                   //   UnionConverter<sex>() 
+                                   |]
 
 let settings = 
   JsonSerializerSettings(
@@ -139,3 +144,10 @@ let pair1,pair2 = (john,jane),(jane,john)
 let series2 = ResizeArray([ pair1;pair1;pair2;pair2; ])
 test' series1
 test' series2
+
+//TODO: add more tests
+let x,y = Some(3L),Option<int64>.None
+test  y
+test' y
+test  x
+test' x
