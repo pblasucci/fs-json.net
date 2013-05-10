@@ -1,13 +1,13 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "fs-json.net", "src\fs-json.net\fs-json.net.fsproj", "{AA512E07-10A0-42F1-80FA-DC3D59097B14}"
-EndProject
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BF2C8C2D-CD3D-4E36-92CF-123E519C769A}"
 	ProjectSection(SolutionItems) = preProject
 		LICENSE.txt = LICENSE.txt
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "fs-json.net", "src\fs-json.net\fs-json.net.fsproj", "{AA512E07-10A0-42F1-80FA-DC3D59097B14}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

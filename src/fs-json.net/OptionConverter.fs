@@ -18,30 +18,30 @@ open Newtonsoft.Json.Linq
 open System
 open System.Reflection
 
-//TODO: code comments
-//MAYBE: add caching
+//TODO: add caching
+
+/// A JSON.NET converter which can serialize/deserialize F# option types.
 type OptionConverter() =
   inherit JsonConverter()
   
   let [<Literal>] FS_VALUE = "Value"
+ 
+  let option = typedefof<option<_>>
   
-  let option    = typedefof<option<_>>
-  let noneCase
-     ,someCase  = let cases = FSharpType.GetUnionCases(option)
-                  (cases.[0],cases.[1])
-  let readTag   = FSharpValue.PreComputeUnionTagReader(option)
+  // makes it easier to determine IsSome/IsNone reflectively
+  let readTag = FSharpValue.PreComputeUnionTagReader(option)
 
+  let (|Option|) t = 
+    let cases = FSharpType.GetUnionCases(t)
+    Option(cases.[0],cases.[1])
+  
   let (|IsNone|IsSome|) o =
-    if (readTag o) = someCase.Tag 
+    let (Option(none,some)) = option
+    if (readTag o) = some.Tag 
       then  let _,values = FSharpValue.GetUnionFields(o,o.GetType())
             IsSome (values.[0])
       else  IsNone
   
-  let makeClosedCases t =
-    let closedType = option.MakeGenericType([| t |])
-    let cases = FSharpType.GetUnionCases(closedType)
-    (cases.[0],cases.[1])
-
   override __.CanRead  = true
   override __.CanWrite = true
   
@@ -54,6 +54,8 @@ type OptionConverter() =
   override __.WriteJson(writer,value,serializer) =
     match value with
     | IsNone    ->  writer.WriteNull() 
+                    //TODO: investigate the relevance 
+                    //      of JSON.NET's NullHandling options
     | IsSome(v) ->  writer.WriteStartObject()
               
                     // emit "system" metadata, if necessary
@@ -70,9 +72,12 @@ type OptionConverter() =
     
   override __.ReadJson(reader,vType,_,serializer) = 
     let decode,decode',advance,readName = makeHelpers reader serializer
-        
-    let innerType         = vType.GetGenericArguments() |> Seq.head
-    let noneCase,someCase = makeClosedCases innerType
+    
+    // type of actual data "wrapped" by option type
+    let innerType = vType.GetGenericArguments() |> Seq.head
+    //NOTE: Reflection requires fully-reified generic types 
+    //      in order to create late-bound union case instances
+    let (Option(none,some)) = option.MakeGenericType([| innerType |])
 
     let readProperties () =
       let rec readProps pairs =
@@ -82,10 +87,10 @@ type OptionConverter() =
             // get the key of the next key/value pair
             let name  = readName ()
             let value = match name with
-                        //  for "system" metadata, process normally
+                        // for "system" metadata, process normally
                         | JSON_ID 
                         | JSON_REF -> decode()
-                        //  "Value" indicates option-type pair
+                        // "Value" indicates option-type pair
                         | FS_VALUE -> decode' innerType
                         | _ -> reader |> invalidToken
             advance ()
@@ -96,7 +101,7 @@ type OptionConverter() =
       readProps Map.empty
 
     match reader.TokenType with
-    | JsonToken.Null        -> FSharpValue.MakeUnion(noneCase,null)
+    | JsonToken.Null        -> FSharpValue.MakeUnion(none,null)
     | JsonToken.StartObject ->
         // read all key/value pairs, reifying with tuple field types
         match readProperties() with
@@ -114,7 +119,7 @@ type OptionConverter() =
                 |> Seq.map (coerceType innerType)
                 |> Seq.toArray
             // create option instance
-            let value = FSharpValue.MakeUnion(someCase,inputs)
+            let value = FSharpValue.MakeUnion(some,inputs)
             if serializer.IsTracking then 
               match data |> Map.tryFindKey (fun k _ -> k = JSON_ID) with
               // use existing "$id"

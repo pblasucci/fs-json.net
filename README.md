@@ -10,7 +10,7 @@ Thus far, fs-json.net contains two type converters:
   
   - **UnionConverter<'t>** ... can serialize/deserialize any values of the discriminated union given for 't
 
-  - **OptionConverter** ... can serialize/deserialize option type instances *(NOTE: not fully tested yet)*
+  - **OptionConverter** ... can serialize/deserialize option type instances
 
 A complete example can be found in [Scratch.fsx](http://github.com/pblasucci/fs-json.net/blob/master/src/fs-json.net/Scratch.fsx), located along-side the source files
 

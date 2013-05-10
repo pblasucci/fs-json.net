@@ -16,14 +16,18 @@ open Microsoft.FSharp.Reflection
 open Newtonsoft.Json
 open System
 
-//MAYBE: add caching
+//TODO: add caching
+
+/// <summary>
+/// A JSON.NET converter which can serialize/deserialize F# tuple values.
+/// </summary>
 type TupleConverter() =
   inherit JsonConverter()
 
   override __.CanRead  = true
   override __.CanWrite = true
   
-  override __.CanConvert(vType) = vType |> FSharpType.IsTuple
+  override __.CanConvert(vType) = FSharpType.IsTuple vType
   
   override __.WriteJson(writer,value,serializer) = 
     match value with

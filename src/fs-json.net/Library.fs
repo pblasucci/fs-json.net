@@ -18,7 +18,6 @@ open System
 exception UnexpectedToken of JsonToken
 exception InvalidPropertySet
 
-//TODO: review this module for unused members
 [<AutoOpen>]
 module internal Library =
 
@@ -47,24 +46,21 @@ module internal Library =
     
   /// defines extensions which simplify using the JSON.NET writer
   type Newtonsoft.Json.JsonWriter with
-    
-    member self.WriteProperty(name,value:'a) =
-      // "<name>" : <value>
-      self.WritePropertyName(name)
-      self.WriteValue(box value)
 
     member self.WriteIndentity(serializer:JsonSerializer,value) =
       // { "$id" : <an-identity> }
       if serializer.IsTracking then
         let identity = serializer.MakeReference(value)
-        self.WriteProperty(JSON_ID,identity)
+        self.WritePropertyName(JSON_ID)
+        self.WriteValue(identity)
 
     member self.WriteReference(serializer:JsonSerializer,value) =
       // { "$ref" : <an-identity> }
       if serializer.HasReference(value) then  
         let identity = serializer.MakeReference(value)
         self.WriteStartObject()
-        self.WriteProperty(JSON_REF,identity)
+        self.WritePropertyName(JSON_REF)
+        self.WriteValue(identity)
         self.WriteEndObject()
   
   //  analyzes a key/value collection to determine its purpose...
@@ -90,6 +86,7 @@ module internal Library =
     elif vType = typeof<int16>   then Convert.ToInt16   value |> box
     elif vType = typeof<int32>   then Convert.ToInt32   value |> box
     elif vType = typeof<float32> then Convert.ToSingle  value |> box
+    elif vType = typeof<decimal> then Convert.ToDecimal value |> box
     else value // no type coercion required
 
   // simplifies raising UnexpectedToken exceptions

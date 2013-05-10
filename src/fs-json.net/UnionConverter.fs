@@ -19,6 +19,13 @@ open System
 open System.Reflection
 open System.Text.RegularExpressions
 
+/// <summary>
+/// A JSON.NET converter which can serialize/deserialize a given F# union.
+/// <para>
+/// NOTE: This converter is not intended for F#'s option type. 
+///       Please use OptionConverter instead.
+/// </para>
+/// </summary>
 type UnionConverter<'u>() =
   inherit JsonConverter()
 
