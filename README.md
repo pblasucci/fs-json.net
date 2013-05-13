@@ -4,7 +4,7 @@ fs-json.net
 
 ### A library of tools to help F# and JSON.NET play nicely together
 
-Thus far, fs-json.net contains two type converters:
+Thus far, fs-json.net contains three type converters:
 
   - **TupleConverter** ... can serialize/deserialize tuple values of any arity
   
